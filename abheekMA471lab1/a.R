@@ -2,11 +2,11 @@ rm(list = ls())
 d = read.table("d-csp0108.txt", header=TRUE)
 
 k = 2
-plot(d[,1], d[,k], main="C return vs Time", xlab="Time", ylab="Return")
+plot(1:length(d[,1]), d[,k], main="C return vs Time", xlab="Time", ylab="Return")
 dev.copy(png, "plots/plota1.png")
 dev.off ()
 k = 3
-plot(d[,1], d[,k], main="SP return vs Time", xlab="Time", ylab="Return")
+plot(1:length(d[,1]), d[,k], main="SP return vs Time", xlab="Time", ylab="Return")
 dev.copy(png, "plots/plota2.png")
 dev.off ()
 
