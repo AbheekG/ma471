@@ -21,14 +21,28 @@ posterior1 <- function(sig2) {
 }
 
 coeff = 1/integrate(posterior1, 0, Inf)$value;
-posterior <- function(x) {
-	return (coeff * posterior1(x^2));
+posterior <- function(sig2) {
+	return (coeff * posterior1(sig2));
 }
 
-rpost = function(n) {
-	a = seq(0.01, 100, 0.01);
-	b = max(posterior(a)/dexp(a, rate = 1/2));
+m = 1000;
+Y = sort(rexp(m));
+W = posterior(Y)/dexp(Y);
+W = W / sum(W);
+
+clb = 0; cub = Inf;
+
+s = 0; k = 0;
+for (i in 1:m) {
+	s = s + W[i];
+	if ((s > alpha/2) && (k == 0)) {
+		k = 1;
+		clb = Y[i];
+	}
+	if ((s > 1 - alpha/2) && (k == 1)) {
+		k = 2;
+		cub = Y[i];
+	}
 }
 
-m = 200;
-S = rpost(m);
+cat(sprintf('\nThe %d%% confidence interval for sig^2 = [%f, %f]\n\n', 100*(1-alpha), clb, cub));

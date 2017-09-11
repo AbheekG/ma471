@@ -8,56 +8,228 @@
 \graphicspath{{plots/}}
 
 \begin{document}
-	\title{\textbf{Assignment-}}
+	\title{\textbf{Assignment-5}}
 	\author{Abheek Ghosh \\ 
 		140123047 }
 	
 	\maketitle
 	
 
-\section{Question 1}
+\section{Question A}
 
 \noindent{Code for R}
 
-\begin{lstlisting}
+\begin{lstlisting}[language=R]
+rm(list = ls())
 
+n = 100;
+alpha = 0.05;
+sig = sqrt(5);
+
+X = rnorm(n, mean = 0, sd = sig);
+sum_X2 = sum(X^2);
+
+prior <- function(sig2) {
+	return (sig2^(-7/2) * exp(-0.5/sig2));
+}
+
+likelihood <- function (sig2) {
+	return (exp(-sum_X2/(2*sig2)) / sqrt(2*pi*sig2)^n)
+}
+
+posterior1 <- function(sig2) {
+	y = likelihood(sig2)*prior(sig2);
+	return (y);
+}
+
+coeff = 1/integrate(posterior1, 0, Inf)$value;
+posterior <- function(sig2) {
+	return (coeff * posterior1(sig2));
+}
+
+m = 1000;
+Y = sort(rexp(m));
+W = posterior(Y)/dexp(Y);
+W = W / sum(W);
+
+clb = 0; cub = Inf;
+
+s = 0; k = 0;
+for (i in 1:m) {
+	s = s + W[i];
+	if ((s > alpha/2) && (k == 0)) {
+		k = 1;
+		clb = Y[i];
+	}
+	if ((s > 1 - alpha/2) && (k == 1)) {
+		k = 2;
+		cub = Y[i];
+	}
+}
+
+cat(sprintf('\nThe %d%% confidence interval for sig^2 = [%f, %f]\n\n', 100*(1-alpha), clb, cub));
 \end{lstlisting}
 
-\includegraphics{"plota1"}
-\pagebreak
+The 95\% confidence interval for sig\^2 = [5.049555, 7.282538]\\
 
-
-\section{Question 2}
+\section{Question B (i)}
 
 \noindent{Code for R}
 
-\begin{lstlisting}
+\begin{lstlisting}[language=R]
+rm(list = ls())
+d = read.table("d-csp0108.txt", header=TRUE)
+names = c('C', 'SP')
+n = length(d[,1]);
+
+# Calculating log returns
+for (k in 2:3) {
+	d[,k] = log(1 + d[,k]);
+}
+
+N = c(50, n);
+alpha = 0.05;
+
+for (k in 2:3) {
+	X = d[,k];
+	mu_total = mean(X);
+	for (n in N) {
+		mu = mean(X[1:n]);
+		sig = sd(X[1:n]);
+
+		clb = sig*qnorm(alpha/2)/sqrt(n); cub = sig*qnorm(1 - alpha/2)/sqrt(n);
+
+		cat(sprintf('\n%s Stock, %d samples\\\\\n', names[k-1], n));
+		cat(sprintf('The %d%% confidence interval for mean = [%f, %f]\\\\\n', 100*(1-alpha), clb, cub));
+		if ((clb <= mu) && (mu <= cub)) {
+			cat(sprintf('The mean = %f is inside the confidence interval.\\\\\n\n', mu));
+		} else {
+			cat(sprintf('The mean = %f is not inside the confidence interval.\\\\\n\n', mu));
+		}
+	}	
+}
 
 \end{lstlisting}
 
-\includegraphics{"plota1"}
-\pagebreak
+C Stock, 50 samples\\
+The 95\% confidence interval for mean = [-0.007473, 0.007473]\\
+The mean = -0.002522 is inside the confidence interval.\\
 
-\section{Question 3}
+
+C Stock, 2011 samples\\
+The 95\% confidence interval for mean = [-0.001330, 0.001330]\\
+The mean = -0.000845 is inside the confidence interval.\\
+
+
+SP Stock, 50 samples\\
+The 95\% confidence interval for mean = [-0.004114, 0.004114]\\
+The mean = -0.002473 is inside the confidence interval.\\
+
+
+SP Stock, 2011 samples\\
+The 95\% confidence interval for mean = [-0.000593, 0.000593]\\
+The mean = -0.000189 is inside the confidence interval.\\
+
+
+\section{Question B (ii)}
 
 \noindent{Code for R}
 
-\begin{lstlisting}
+\begin{lstlisting}[language=R]
+rm(list = ls())
+d = read.table("d-csp0108.txt", header=TRUE)
+names = c('C', 'SP')
+methods = c('boot-t', 'boot percentile');
+n = length(d[,1]);
 
+# Calculating log returns
+for (k in 2:3) {
+	d[,k] = log(1 + d[,k]);
+}
+
+N = c(50, n);
+alpha = 0.05;
+B = 1000;
+m = 100;
+
+for (method in methods) {
+	for (k in 2:3) {
+		X = d[,k];
+		mu_total = mean(X);
+		for (n in N) {
+			mu = mean(X[1:n]);
+			sig = sd(X[1:n]);
+
+			if (method == 'boot-t') {
+				T = numeric(B);
+				for (b in 1:B) {
+					s = sample(n, m, replace = TRUE);
+					Y = X[s];
+					T[b] = sqrt(m)*(mean(Y) - mu)/sd(Y);
+				}
+				CI = quantile(T, c(alpha/2, 1- alpha/2));
+				CI = CI*sig/sqrt(n);
+			} else {
+				M = numeric(B);
+				for (b in 1:B) {
+					s = sample(n, m, replace = TRUE);
+					Y = X[s];
+					M[b] = mean(Y);
+				}
+				CI = quantile(M, c(alpha/2, 1- alpha/2));
+			}
+
+			# print(CI);
+			clb = CI[1]; cub = CI[2];
+			cat(sprintf('\n%s Stock, %d samples, Method = %s\\\\\n', names[k-1], n, method));
+			cat(sprintf('The %d%% confidence interval for mean = [%f, %f]\\\\\n', 100*(1-alpha), clb, cub));
+			if ((clb <= mu) && (mu <= cub)) {
+				cat(sprintf('The mean = %f is inside the confidence interval.\\\\\n\n', mu));
+			} else {
+				cat(sprintf('The mean = %f is not inside the confidence interval.\\\\\n\n', mu));
+			}
+		}	
+	}
+}
 \end{lstlisting}
 
-\includegraphics{"plota1"}
-\pagebreak
+C Stock, 50 samples, Method = boot-t\\
+The 95\% confidence interval for mean = [-0.007753, 0.007045]\\
+The mean = -0.002522 is inside the confidence interval.\\
 
-\section{Question 4}
 
-\noindent{Code for R}
+C Stock, 2011 samples, Method = boot-t\\
+The 95\% confidence interval for mean = [-0.001279, 0.001470]\\
+The mean = -0.000845 is inside the confidence interval.\\
 
-\begin{lstlisting}
 
-\end{lstlisting}
+SP Stock, 50 samples, Method = boot-t\\
+The 95\% confidence interval for mean = [-0.004057, 0.004151]\\
+The mean = -0.002473 is inside the confidence interval.\\
 
-\includegraphics{"plota1"}
-\pagebreak
+
+SP Stock, 2011 samples, Method = boot-t\\
+The 95\% confidence interval for mean = [-0.000572, 0.000579]\\
+The mean = -0.000189 is inside the confidence interval.\\
+
+
+C Stock, 50 samples, Method = boot percentile\\
+The 95\% confidence interval for mean = [-0.007709, 0.002714]\\
+The mean = -0.002522 is inside the confidence interval.\\
+
+
+C Stock, 2011 samples, Method = boot percentile\\
+The 95\% confidence interval for mean = [-0.006803, 0.005083]\\
+The mean = -0.000845 is inside the confidence interval.\\
+
+
+SP Stock, 50 samples, Method = boot percentile\\
+The 95\% confidence interval for mean = [-0.005385, 0.000361]\\
+The mean = -0.002473 is inside the confidence interval.\\
+
+
+SP Stock, 2011 samples, Method = boot percentile\\
+The 95\% confidence interval for mean = [-0.002946, 0.002433]\\
+The mean = -0.000189 is inside the confidence interval.\\
 
 \end{document}
