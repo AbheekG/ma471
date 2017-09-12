@@ -1,47 +1,45 @@
 rm(list = ls())
-d = read.table("d-csp0108.txt", header=TRUE)
-names = c('C', 'SP')
-n = length(d[,1]);
-
-# Calculating log returns
-for (k in 2:3) {
-	d[,k] = log(1 + d[,k]);
-}
-
-N = c(50, 100, 500, 1000, n);
-NN = seq(50, n, 50);
+p = 0.3;
 alpha = 0.05;
 
-for (k in 2:3) {
-	X = d[,k];
-	mu_total = mean(X);
-	for (n in N) {
-		mu = mean(X[1:n]);
-		sig = sd(X[1:n]);
+n = 1000;
+M = c(20, 50, 100, 500, 1000);
 
-		clb = sig*qnorm(alpha/2)/sqrt(n); cub = sig*qnorm(1 - alpha/2)/sqrt(n);
+Ps = seq(0.001, 1-0.001, 0.001);
+z = qchisq(1-alpha, 1);
 
-		cc = exp(-qnorm(1 - alpha/2)^2/2);
+for (m in M) {
+	covProb = 0;
+	crossL = 0;
+	crossU = 0;
 
-		cat(sprintf('\n%s Stock, interval constructed using %d samples\\\\\n', names[k-1], n));
-		cat(sprintf('Using Likelihood Ratio Test to find confidence interval.\\\\\nHypothesis rejected if ratio less than %f\\\\\n', cc));
-		cat(sprintf('The %d\\%% confidence interval for mean = [%f, %f]\\\\\n', 100*(1-alpha), clb, cub));
-		if ((clb <= mu) && (mu <= cub)) {
-			cat(sprintf('The mean = %f is inside the confidence interval.\\\\\n', mu));
-		} else {
-			cat(sprintf('The mean = %f is not inside the confidence interval.\\\\\n', mu));
+	X = rbinom(m*n, size = 1, prob = p);
+	p_0 = sum(X)/(n*m);
+	# print(p_mle); print(length(X))
+
+	for (i in 1:n) {
+		Y = X[((i-1)*m + 1) : (i*m)];
+
+		p_mle = mean(Y);
+		LogL_mle = m*p_mle*log(p_mle) + m*(1-p_mle)*log(1-p_mle);
+		LogL_Ps = m*p_mle*log(Ps) + m*(1-p_mle)*log(1-Ps);
+		temp = 2*(LogL_mle - LogL_Ps) < z;
+
+		cil = min(Ps[temp]);
+		ciu = max(Ps[temp]);
+
+		if (!is.na(cil) || !is.na(ciu)) if ((cil <= p_0) && (p_0 <= ciu)) {
+			covProb = covProb + 1;
 		}
+	}
 
-		for (nn in NN) {
-			conf = 0;
-			for (i in 1:nn) {
-				s = sample(n, n, replace=T);
-				mu_test = mean(X[s]);
-				if ((clb+mu <= mu_test) && (mu_test <= cub+mu)) {
-					conf = conf + 1;
-				}
-			}
-			cat(sprintf('For %d samples coverage probability = %f\\\\\n', nn, conf/nn));
-		}
-	}	
+	LogL_0 = m*p_0*log(p_0) + m*(1-p_0)*log(1-p_0);
+	LogL_Ps = m*p_0*log(Ps) + m*(1-p_0)*log(1-Ps);
+	temp = 2*(LogL_0 - LogL_Ps) < z;
+	cil = min(Ps[temp]);
+	ciu = max(Ps[temp]);
+
+	cat(sprintf("\nBernoulli sample count = %d\\\\\np_0 = %f\\\\\n", m, p_0));
+	cat(sprintf("Using Likelihood Ratio Test Confidence Interval = [%f, %f]\\\\\n", cil, ciu));
+	cat(sprintf("Coverage Probability = %f\\\\\n", covProb/n));
 }

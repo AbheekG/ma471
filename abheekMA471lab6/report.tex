@@ -21,501 +21,77 @@
 
 \begin{lstlisting}[language=R]
 rm(list = ls())
-d = read.table("d-csp0108.txt", header=TRUE)
-names = c('C', 'SP')
-n = length(d[,1]);
-
-# Calculating log returns
-for (k in 2:3) {
-	d[,k] = log(1 + d[,k]);
-}
-
-N = c(50, 100, 500, 1000, n);
+p = 0.3;
 alpha = 0.05;
 
-for (k in 2:3) {
-	X = d[,k];
-	mu_total = mean(X);
-	for (n in N) {
-		mu = mean(X[1:n]);
-		sig = sd(X[1:n]);
+n = 1000;
+M = c(20, 50, 100, 500, 1000);
 
-		clb = sig*qnorm(alpha/2)/sqrt(n); cub = sig*qnorm(1 - alpha/2)/sqrt(n);
+Ps = seq(0.001, 1-0.001, 0.001);
+z = qchisq(1-alpha, 1);
 
-		cc = exp(-qnorm(1 - alpha/2)^2/2);
+for (m in M) {
+	covProb = 0;
+	crossL = 0;
+	crossU = 0;
 
-		cat(sprintf('\n%s Stock, %d samples\\\\\n', names[k-1], n));
-		cat(sprintf('Using Likelihood Ratio Test to find confidence interval.\\\\\nHypothesis rejected if ratio less than %f\\\\\n', cc));
-		cat(sprintf('The %d%% confidence interval for mean = [%f, %f]\\\\\n', 100*(1-alpha), clb, cub));
-		if ((clb <= mu) && (mu <= cub)) {
-			cat(sprintf('The mean = %f is inside the confidence interval.\\\\\n\n', mu));
-		} else {
-			cat(sprintf('The mean = %f is not inside the confidence interval.\\\\\n\n', mu));
+	X = rbinom(m*n, size = 1, prob = p);
+	p_0 = sum(X)/(n*m);
+	# print(p_mle); print(length(X))
+
+	for (i in 1:n) {
+		Y = X[((i-1)*m + 1) : (i*m)];
+
+		p_mle = mean(Y);
+		LogL_mle = m*p_mle*log(p_mle) + m*(1-p_mle)*log(1-p_mle);
+		LogL_Ps = m*p_mle*log(Ps) + m*(1-p_mle)*log(1-Ps);
+		temp = 2*(LogL_mle - LogL_Ps) < z;
+
+		cil = min(Ps[temp]);
+		ciu = max(Ps[temp]);
+
+		if (!is.na(cil) || !is.na(ciu)) if ((cil <= p_0) && (p_0 <= ciu)) {
+			covProb = covProb + 1;
 		}
-	}	
+	}
+
+	LogL_0 = m*p_0*log(p_0) + m*(1-p_0)*log(1-p_0);
+	LogL_Ps = m*p_0*log(Ps) + m*(1-p_0)*log(1-Ps);
+	temp = 2*(LogL_0 - LogL_Ps) < z;
+	cil = min(Ps[temp]);
+	ciu = max(Ps[temp]);
+
+	cat(sprintf("\nBernoulli sample count = %d\\\\\np_0 = %f\\\\\n", m, p_0));
+	cat(sprintf("Using Likelihood Ratio Test Confidence Interval = [%f, %f]\\\\\n", cil, ciu));
+	cat(sprintf("Coverage Probability = %f\\\\\n", covProb/n));
 }
 
 \end{lstlisting}
 
-C Stock, interval constructed using 50 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.007473, 0.007473]\\
-The mean = -0.002522 is inside the confidence interval.\\
-For 50 samples coverage probability = 1.000000\\
-For 100 samples coverage probability = 0.920000\\
-For 150 samples coverage probability = 0.973333\\
-For 200 samples coverage probability = 0.930000\\
-For 250 samples coverage probability = 0.948000\\
-For 300 samples coverage probability = 0.970000\\
-For 350 samples coverage probability = 0.948571\\
-For 400 samples coverage probability = 0.945000\\
-For 450 samples coverage probability = 0.935556\\
-For 500 samples coverage probability = 0.946000\\
-For 550 samples coverage probability = 0.941818\\
-For 600 samples coverage probability = 0.956667\\
-For 650 samples coverage probability = 0.946154\\
-For 700 samples coverage probability = 0.965714\\
-For 750 samples coverage probability = 0.961333\\
-For 800 samples coverage probability = 0.960000\\
-For 850 samples coverage probability = 0.960000\\
-For 900 samples coverage probability = 0.954444\\
-For 950 samples coverage probability = 0.956842\\
-For 1000 samples coverage probability = 0.940000\\
-For 1050 samples coverage probability = 0.957143\\
-For 1100 samples coverage probability = 0.942727\\
-For 1150 samples coverage probability = 0.943478\\
-For 1200 samples coverage probability = 0.959167\\
-For 1250 samples coverage probability = 0.956000\\
-For 1300 samples coverage probability = 0.962308\\
-For 1350 samples coverage probability = 0.962222\\
-For 1400 samples coverage probability = 0.956429\\
-For 1450 samples coverage probability = 0.964828\\
-For 1500 samples coverage probability = 0.953333\\
-For 1550 samples coverage probability = 0.946452\\
-For 1600 samples coverage probability = 0.947500\\
-For 1650 samples coverage probability = 0.950909\\
-For 1700 samples coverage probability = 0.958824\\
-For 1750 samples coverage probability = 0.947429\\
-For 1800 samples coverage probability = 0.950556\\
-For 1850 samples coverage probability = 0.950270\\
-For 1900 samples coverage probability = 0.950000\\
-For 1950 samples coverage probability = 0.945128\\
-For 2000 samples coverage probability = 0.959500\\
+Bernoulli sample count = 20\\
+p0 = 0.300400\\
+Using Likelihood Ratio Test Confidence Interval = [0.133000, 0.516000]\\
+Coverage Probability = 0.956000
 
-C Stock, interval constructed using 100 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.005280, 0.005280]\\
-The mean = 0.000343 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.880000\\
-For 100 samples coverage probability = 0.980000\\
-For 150 samples coverage probability = 0.973333\\
-For 200 samples coverage probability = 0.940000\\
-For 250 samples coverage probability = 0.948000\\
-For 300 samples coverage probability = 0.966667\\
-For 350 samples coverage probability = 0.960000\\
-For 400 samples coverage probability = 0.935000\\
-For 450 samples coverage probability = 0.928889\\
-For 500 samples coverage probability = 0.952000\\
-For 550 samples coverage probability = 0.952727\\
-For 600 samples coverage probability = 0.940000\\
-For 650 samples coverage probability = 0.955385\\
-For 700 samples coverage probability = 0.945714\\
-For 750 samples coverage probability = 0.966667\\
-For 800 samples coverage probability = 0.958750\\
-For 850 samples coverage probability = 0.948235\\
-For 900 samples coverage probability = 0.958889\\
-For 950 samples coverage probability = 0.952632\\
-For 1000 samples coverage probability = 0.951000\\
-For 1050 samples coverage probability = 0.960952\\
-For 1100 samples coverage probability = 0.951818\\
-For 1150 samples coverage probability = 0.952174\\
-For 1200 samples coverage probability = 0.944167\\
-For 1250 samples coverage probability = 0.946400\\
-For 1300 samples coverage probability = 0.942308\\
-For 1350 samples coverage probability = 0.950370\\
-For 1400 samples coverage probability = 0.950714\\
-For 1450 samples coverage probability = 0.953103\\
-For 1500 samples coverage probability = 0.956667\\
-For 1550 samples coverage probability = 0.956129\\
-For 1600 samples coverage probability = 0.950000\\
-For 1650 samples coverage probability = 0.952121\\
-For 1700 samples coverage probability = 0.952353\\
-For 1750 samples coverage probability = 0.941143\\
-For 1800 samples coverage probability = 0.949444\\
-For 1850 samples coverage probability = 0.959459\\
-For 1900 samples coverage probability = 0.958421\\
-For 1950 samples coverage probability = 0.950256\\
-For 2000 samples coverage probability = 0.952500\\
+Bernoulli sample count = 50\\
+p0 = 0.297460\\
+Using Likelihood Ratio Test Confidence Interval = [0.184000, 0.432000]\\
+Coverage Probability = 0.955000
 
-C Stock, interval constructed using 500 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.002381, 0.002381]\\
-The mean = -0.000557 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.960000\\
-For 100 samples coverage probability = 0.940000\\
-For 150 samples coverage probability = 0.960000\\
-For 200 samples coverage probability = 0.945000\\
-For 250 samples coverage probability = 0.928000\\
-For 300 samples coverage probability = 0.933333\\
-For 350 samples coverage probability = 0.945714\\
-For 400 samples coverage probability = 0.947500\\
-For 450 samples coverage probability = 0.962222\\
-For 500 samples coverage probability = 0.964000\\
-For 550 samples coverage probability = 0.945455\\
-For 600 samples coverage probability = 0.953333\\
-For 650 samples coverage probability = 0.950769\\
-For 700 samples coverage probability = 0.964286\\
-For 750 samples coverage probability = 0.952000\\
-For 800 samples coverage probability = 0.952500\\
-For 850 samples coverage probability = 0.951765\\
-For 900 samples coverage probability = 0.946667\\
-For 950 samples coverage probability = 0.940000\\
-For 1000 samples coverage probability = 0.953000\\
-For 1050 samples coverage probability = 0.939048\\
-For 1100 samples coverage probability = 0.953636\\
-For 1150 samples coverage probability = 0.952174\\
-For 1200 samples coverage probability = 0.950833\\
-For 1250 samples coverage probability = 0.951200\\
-For 1300 samples coverage probability = 0.956923\\
-For 1350 samples coverage probability = 0.951111\\
-For 1400 samples coverage probability = 0.948571\\
-For 1450 samples coverage probability = 0.953103\\
-For 1500 samples coverage probability = 0.950000\\
-For 1550 samples coverage probability = 0.949032\\
-For 1600 samples coverage probability = 0.943125\\
-For 1650 samples coverage probability = 0.945455\\
-For 1700 samples coverage probability = 0.950588\\
-For 1750 samples coverage probability = 0.950857\\
-For 1800 samples coverage probability = 0.945556\\
-For 1850 samples coverage probability = 0.950270\\
-For 1900 samples coverage probability = 0.958947\\
-For 1950 samples coverage probability = 0.956410\\
-For 2000 samples coverage probability = 0.953000\\
+Bernoulli sample count = 100\\
+p0 = 0.299070\\
+Using Likelihood Ratio Test Confidence Interval = [0.216000, 0.393000]\\
+Coverage Probability = 0.958000
 
-C Stock, interval constructed using 1000 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.001320, 0.001320]\\
-The mean = 0.000099 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.980000\\
-For 100 samples coverage probability = 0.910000\\
-For 150 samples coverage probability = 0.966667\\
-For 200 samples coverage probability = 0.965000\\
-For 250 samples coverage probability = 0.932000\\
-For 300 samples coverage probability = 0.960000\\
-For 350 samples coverage probability = 0.942857\\
-For 400 samples coverage probability = 0.932500\\
-For 450 samples coverage probability = 0.935556\\
-For 500 samples coverage probability = 0.948000\\
-For 550 samples coverage probability = 0.947273\\
-For 600 samples coverage probability = 0.945000\\
-For 650 samples coverage probability = 0.955385\\
-For 700 samples coverage probability = 0.945714\\
-For 750 samples coverage probability = 0.948000\\
-For 800 samples coverage probability = 0.958750\\
-For 850 samples coverage probability = 0.960000\\
-For 900 samples coverage probability = 0.960000\\
-For 950 samples coverage probability = 0.955789\\
-For 1000 samples coverage probability = 0.941000\\
-For 1050 samples coverage probability = 0.951429\\
-For 1100 samples coverage probability = 0.956364\\
-For 1150 samples coverage probability = 0.957391\\
-For 1200 samples coverage probability = 0.938333\\
-For 1250 samples coverage probability = 0.942400\\
-For 1300 samples coverage probability = 0.952308\\
-For 1350 samples coverage probability = 0.962222\\
-For 1400 samples coverage probability = 0.952143\\
-For 1450 samples coverage probability = 0.954483\\
-For 1500 samples coverage probability = 0.952667\\
-For 1550 samples coverage probability = 0.956774\\
-For 1600 samples coverage probability = 0.948125\\
-For 1650 samples coverage probability = 0.951515\\
-For 1700 samples coverage probability = 0.942353\\
-For 1750 samples coverage probability = 0.950857\\
-For 1800 samples coverage probability = 0.944444\\
-For 1850 samples coverage probability = 0.956216\\
-For 1900 samples coverage probability = 0.947895\\
-For 1950 samples coverage probability = 0.949231\\
-For 2000 samples coverage probability = 0.952000\\
+Bernoulli sample count = 500\\
+p0 = 0.298872\\
+Using Likelihood Ratio Test Confidence Interval = [0.260000, 0.339000]\\
+Coverage Probability = 0.950000
 
-C Stock, interval constructed using 2011 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.001330, 0.001330]\\
-The mean = -0.000845 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.960000\\
-For 100 samples coverage probability = 0.940000\\
-For 150 samples coverage probability = 0.933333\\
-For 200 samples coverage probability = 0.940000\\
-For 250 samples coverage probability = 0.956000\\
-For 300 samples coverage probability = 0.963333\\
-For 350 samples coverage probability = 0.942857\\
-For 400 samples coverage probability = 0.937500\\
-For 450 samples coverage probability = 0.957778\\
-For 500 samples coverage probability = 0.946000\\
-For 550 samples coverage probability = 0.963636\\
-For 600 samples coverage probability = 0.951667\\
-For 650 samples coverage probability = 0.966154\\
-For 700 samples coverage probability = 0.942857\\
-For 750 samples coverage probability = 0.949333\\
-For 800 samples coverage probability = 0.937500\\
-For 850 samples coverage probability = 0.941176\\
-For 900 samples coverage probability = 0.948889\\
-For 950 samples coverage probability = 0.944211\\
-For 1000 samples coverage probability = 0.946000\\
-For 1050 samples coverage probability = 0.950476\\
-For 1100 samples coverage probability = 0.942727\\
-For 1150 samples coverage probability = 0.962609\\
-For 1200 samples coverage probability = 0.949167\\
-For 1250 samples coverage probability = 0.952800\\
-For 1300 samples coverage probability = 0.950000\\
-For 1350 samples coverage probability = 0.947407\\
-For 1400 samples coverage probability = 0.950714\\
-For 1450 samples coverage probability = 0.946207\\
-For 1500 samples coverage probability = 0.942667\\
-For 1550 samples coverage probability = 0.949032\\
-For 1600 samples coverage probability = 0.943750\\
-For 1650 samples coverage probability = 0.940606\\
-For 1700 samples coverage probability = 0.945882\\
-For 1750 samples coverage probability = 0.949143\\
-For 1800 samples coverage probability = 0.951111\\
-For 1850 samples coverage probability = 0.935676\\
-For 1900 samples coverage probability = 0.943158\\
-For 1950 samples coverage probability = 0.948205\\
-For 2000 samples coverage probability = 0.953500\\
-
-SP Stock, interval constructed using 50 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.004114, 0.004114]\\
-The mean = -0.002473 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.940000\\
-For 100 samples coverage probability = 0.990000\\
-For 150 samples coverage probability = 0.966667\\
-For 200 samples coverage probability = 0.960000\\
-For 250 samples coverage probability = 0.940000\\
-For 300 samples coverage probability = 0.950000\\
-For 350 samples coverage probability = 0.931429\\
-For 400 samples coverage probability = 0.957500\\
-For 450 samples coverage probability = 0.966667\\
-For 500 samples coverage probability = 0.964000\\
-For 550 samples coverage probability = 0.961818\\
-For 600 samples coverage probability = 0.953333\\
-For 650 samples coverage probability = 0.940000\\
-For 700 samples coverage probability = 0.951429\\
-For 750 samples coverage probability = 0.956000\\
-For 800 samples coverage probability = 0.955000\\
-For 850 samples coverage probability = 0.950588\\
-For 900 samples coverage probability = 0.950000\\
-For 950 samples coverage probability = 0.943158\\
-For 1000 samples coverage probability = 0.953000\\
-For 1050 samples coverage probability = 0.945714\\
-For 1100 samples coverage probability = 0.948182\\
-For 1150 samples coverage probability = 0.946957\\
-For 1200 samples coverage probability = 0.950833\\
-For 1250 samples coverage probability = 0.952800\\
-For 1300 samples coverage probability = 0.940769\\
-For 1350 samples coverage probability = 0.953333\\
-For 1400 samples coverage probability = 0.948571\\
-For 1450 samples coverage probability = 0.953103\\
-For 1500 samples coverage probability = 0.947333\\
-For 1550 samples coverage probability = 0.962581\\
-For 1600 samples coverage probability = 0.945000\\
-For 1650 samples coverage probability = 0.951515\\
-For 1700 samples coverage probability = 0.949412\\
-For 1750 samples coverage probability = 0.944571\\
-For 1800 samples coverage probability = 0.955556\\
-For 1850 samples coverage probability = 0.949189\\
-For 1900 samples coverage probability = 0.954211\\
-For 1950 samples coverage probability = 0.950769\\
-For 2000 samples coverage probability = 0.956500\\
-
-SP Stock, interval constructed using 100 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.003052, 0.003052]\\
-The mean = -0.000207 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.960000\\
-For 100 samples coverage probability = 0.920000\\
-For 150 samples coverage probability = 0.933333\\
-For 200 samples coverage probability = 0.950000\\
-For 250 samples coverage probability = 0.960000\\
-For 300 samples coverage probability = 0.946667\\
-For 350 samples coverage probability = 0.948571\\
-For 400 samples coverage probability = 0.957500\\
-For 450 samples coverage probability = 0.944444\\
-For 500 samples coverage probability = 0.942000\\
-For 550 samples coverage probability = 0.958182\\
-For 600 samples coverage probability = 0.953333\\
-For 650 samples coverage probability = 0.969231\\
-For 700 samples coverage probability = 0.948571\\
-For 750 samples coverage probability = 0.956000\\
-For 800 samples coverage probability = 0.951250\\
-For 850 samples coverage probability = 0.945882\\
-For 900 samples coverage probability = 0.957778\\
-For 950 samples coverage probability = 0.953684\\
-For 1000 samples coverage probability = 0.958000\\
-For 1050 samples coverage probability = 0.942857\\
-For 1100 samples coverage probability = 0.957273\\
-For 1150 samples coverage probability = 0.932174\\
-For 1200 samples coverage probability = 0.947500\\
-For 1250 samples coverage probability = 0.947200\\
-For 1300 samples coverage probability = 0.947692\\
-For 1350 samples coverage probability = 0.962963\\
-For 1400 samples coverage probability = 0.948571\\
-For 1450 samples coverage probability = 0.942069\\
-For 1500 samples coverage probability = 0.939333\\
-For 1550 samples coverage probability = 0.960000\\
-For 1600 samples coverage probability = 0.953125\\
-For 1650 samples coverage probability = 0.950303\\
-For 1700 samples coverage probability = 0.958235\\
-For 1750 samples coverage probability = 0.948000\\
-For 1800 samples coverage probability = 0.953889\\
-For 1850 samples coverage probability = 0.955135\\
-For 1900 samples coverage probability = 0.955263\\
-For 1950 samples coverage probability = 0.950769\\
-For 2000 samples coverage probability = 0.947000\\
-
-SP Stock, interval constructed using 500 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.001317, 0.001317]\\
-The mean = -0.000812 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.940000\\
-For 100 samples coverage probability = 0.940000\\
-For 150 samples coverage probability = 0.946667\\
-For 200 samples coverage probability = 0.930000\\
-For 250 samples coverage probability = 0.988000\\
-For 300 samples coverage probability = 0.943333\\
-For 350 samples coverage probability = 0.922857\\
-For 400 samples coverage probability = 0.965000\\
-For 450 samples coverage probability = 0.953333\\
-For 500 samples coverage probability = 0.946000\\
-For 550 samples coverage probability = 0.963636\\
-For 600 samples coverage probability = 0.951667\\
-For 650 samples coverage probability = 0.950769\\
-For 700 samples coverage probability = 0.957143\\
-For 750 samples coverage probability = 0.949333\\
-For 800 samples coverage probability = 0.960000\\
-For 850 samples coverage probability = 0.951765\\
-For 900 samples coverage probability = 0.936667\\
-For 950 samples coverage probability = 0.948421\\
-For 1000 samples coverage probability = 0.940000\\
-For 1050 samples coverage probability = 0.943810\\
-For 1100 samples coverage probability = 0.950909\\
-For 1150 samples coverage probability = 0.952174\\
-For 1200 samples coverage probability = 0.954167\\
-For 1250 samples coverage probability = 0.955200\\
-For 1300 samples coverage probability = 0.951538\\
-For 1350 samples coverage probability = 0.950370\\
-For 1400 samples coverage probability = 0.953571\\
-For 1450 samples coverage probability = 0.953103\\
-For 1500 samples coverage probability = 0.954000\\
-For 1550 samples coverage probability = 0.950968\\
-For 1600 samples coverage probability = 0.950000\\
-For 1650 samples coverage probability = 0.952727\\
-For 1700 samples coverage probability = 0.950000\\
-For 1750 samples coverage probability = 0.949714\\
-For 1800 samples coverage probability = 0.953889\\
-For 1850 samples coverage probability = 0.948649\\
-For 1900 samples coverage probability = 0.955789\\
-For 1950 samples coverage probability = 0.954872\\
-For 2000 samples coverage probability = 0.947500\\
-
-SP Stock, interval constructed using 1000 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.000771, 0.000771]\\
-The mean = -0.000091 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.880000\\
-For 100 samples coverage probability = 0.940000\\
-For 150 samples coverage probability = 0.940000\\
-For 200 samples coverage probability = 0.930000\\
-For 250 samples coverage probability = 0.964000\\
-For 300 samples coverage probability = 0.943333\\
-For 350 samples coverage probability = 0.942857\\
-For 400 samples coverage probability = 0.935000\\
-For 450 samples coverage probability = 0.933333\\
-For 500 samples coverage probability = 0.960000\\
-For 550 samples coverage probability = 0.965455\\
-For 600 samples coverage probability = 0.935000\\
-For 650 samples coverage probability = 0.952308\\
-For 700 samples coverage probability = 0.952857\\
-For 750 samples coverage probability = 0.952000\\
-For 800 samples coverage probability = 0.948750\\
-For 850 samples coverage probability = 0.930588\\
-For 900 samples coverage probability = 0.950000\\
-For 950 samples coverage probability = 0.943158\\
-For 1000 samples coverage probability = 0.949000\\
-For 1050 samples coverage probability = 0.946667\\
-For 1100 samples coverage probability = 0.952727\\
-For 1150 samples coverage probability = 0.949565\\
-For 1200 samples coverage probability = 0.951667\\
-For 1250 samples coverage probability = 0.953600\\
-For 1300 samples coverage probability = 0.947692\\
-For 1350 samples coverage probability = 0.954815\\
-For 1400 samples coverage probability = 0.943571\\
-For 1450 samples coverage probability = 0.957931\\
-For 1500 samples coverage probability = 0.946667\\
-For 1550 samples coverage probability = 0.948387\\
-For 1600 samples coverage probability = 0.951250\\
-For 1650 samples coverage probability = 0.943636\\
-For 1700 samples coverage probability = 0.951765\\
-For 1750 samples coverage probability = 0.954286\\
-For 1800 samples coverage probability = 0.950556\\
-For 1850 samples coverage probability = 0.948649\\
-For 1900 samples coverage probability = 0.953684\\
-For 1950 samples coverage probability = 0.957436\\
-For 2000 samples coverage probability = 0.951500\\
-
-SP Stock, interval constructed using 2011 samples\\
-Using Likelihood Ratio Test to find confidence interval.\\
-Hypothesis rejected if ratio less than 0.146500\\
-The 95\% confidence interval for mean = [-0.000593, 0.000593]\\
-The mean = -0.000189 is inside the confidence interval.\\
-For 50 samples coverage probability = 0.940000\\
-For 100 samples coverage probability = 0.980000\\
-For 150 samples coverage probability = 0.926667\\
-For 200 samples coverage probability = 0.970000\\
-For 250 samples coverage probability = 0.944000\\
-For 300 samples coverage probability = 0.953333\\
-For 350 samples coverage probability = 0.931429\\
-For 400 samples coverage probability = 0.950000\\
-For 450 samples coverage probability = 0.957778\\
-For 500 samples coverage probability = 0.954000\\
-For 550 samples coverage probability = 0.958182\\
-For 600 samples coverage probability = 0.955000\\
-For 650 samples coverage probability = 0.958462\\
-For 700 samples coverage probability = 0.945714\\
-For 750 samples coverage probability = 0.956000\\
-For 800 samples coverage probability = 0.955000\\
-For 850 samples coverage probability = 0.943529\\
-For 900 samples coverage probability = 0.950000\\
-For 950 samples coverage probability = 0.954737\\
-For 1000 samples coverage probability = 0.943000\\
-For 1050 samples coverage probability = 0.957143\\
-For 1100 samples coverage probability = 0.961818\\
-For 1150 samples coverage probability = 0.949565\\
-For 1200 samples coverage probability = 0.958333\\
-For 1250 samples coverage probability = 0.954400\\
-For 1300 samples coverage probability = 0.943077\\
-For 1350 samples coverage probability = 0.944444\\
-For 1400 samples coverage probability = 0.956429\\
-For 1450 samples coverage probability = 0.954483\\
-For 1500 samples coverage probability = 0.952000\\
-For 1550 samples coverage probability = 0.950323\\
-For 1600 samples coverage probability = 0.956875\\
-For 1650 samples coverage probability = 0.950303\\
-For 1700 samples coverage probability = 0.958235\\
-For 1750 samples coverage probability = 0.953714\\
-For 1800 samples coverage probability = 0.957222\\
-For 1850 samples coverage probability = 0.952432\\
-For 1900 samples coverage probability = 0.948421\\
-For 1950 samples coverage probability = 0.945128\\
-For 2000 samples coverage probability = 0.959000\\
+Bernoulli sample count = 1000\\
+p0 = 0.299089\\
+Using Likelihood Ratio Test Confidence Interval = [0.272000, 0.327000]\\
+Coverage Probability = 0.948000
 
 
 \section{Question B}
@@ -580,22 +156,22 @@ for (k in 2:3) {
 \end{lstlisting}
 
 C Stock\\
-The 95\% confidence interval for Skewness = [-0.003257, 0.003257]\\
+The 95\% confidence interval for Skewness = [-0.107058, 0.107058]\\
 The Skewness = 0.538650 is not inside the confidence interval. Hypothesis False\\
 
 
 C Stock\\
-The 95\% confidence interval for Excess Kurtosis = [-0.006515, 0.006515]\\
+The 95\% confidence interval for Excess Kurtosis = [-0.214115, 0.214115]\\
 The Excess Kurtosis = 42.760151 is not inside the confidence interval. Hypothesis False\\
 
 
 SP Stock\\
-The 95\% confidence interval for Skewness = [-0.001452, 0.001452]\\
+The 95\% confidence interval for Skewness = [-0.107058, 0.107058]\\
 The Skewness = -0.140850 is not inside the confidence interval. Hypothesis False\\
 
 
 SP Stock\\
-The 95\% confidence interval for Excess Kurtosis = [-0.002904, 0.002904]\\
+The 95\% confidence interval for Excess Kurtosis = [-0.214115, 0.214115]\\
 The Excess Kurtosis = 9.956392 is not inside the confidence interval. Hypothesis False\\
 
 

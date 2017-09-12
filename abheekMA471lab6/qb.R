@@ -33,11 +33,11 @@ for (k in 2:3) {
 
 		if (ty == 'Skewness') {
 			theta = skew(X);
-			sig = sd(X)*sqrt(6/T);
+			sig = sqrt(6/T);
 			clb = sig*qnorm(alpha/2); cub = sig*qnorm(1 - alpha/2);
 		} else {
 			theta = kurt(X) - 3;
-			sig = sd(X)*sqrt(24/T);
+			sig = sqrt(24/T);
 			clb = sig*qnorm(alpha/2); cub = sig*qnorm(1 - alpha/2);
 		}
 		
