@@ -1,0 +1,140 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{mybigpackage}
+\usepackage{graphicx}
+
+\graphicspath{{plots/}}
+
+\begin{document}
+	\title{\textbf{Assignment-}}
+	\author{Abheek Ghosh \\ 
+		140123047 }
+	
+	\maketitle
+	
+
+\section{Question 1}
+
+\noindent{Code for R}
+
+\begin{lstlisting}[language=R]
+surfGumbel <- function(theta) {
+	copula <- function(u, v) {
+		y = exp(-((-log(u))^theta + (-log(v))^theta)^(1/theta));
+		return (y);
+	}
+	n = 100;
+	X = seq(0, 1, length.out = n);
+	Y = X;
+	Z = numeric();
+	for (i in 1:n) {
+		for (j in 1:n) {
+			Z = c(Z, copula(X[i], Y[j]));
+		}
+	}
+
+	Z = matrix(Z, nrow = n, ncol = n);
+	persp(X, Y, Z, xlab = "u", ylab = "v", zlab = "Copula",
+	 main = "Surface plot of bivariate gumbel copula with parameter 1.5");
+	dev.copy(png, "plots/plot_q1_1.png"); dev.off ();
+}
+
+surfNormal <- function(theta) {
+	copula <- function(u, v) {
+		X = matrix(c(qnorm(u), qnorm(v)), nrow=2, ncol=1);
+		Sig = matrix(c(1, theta, theta, 1), nrow=2, ncol=2);
+		y = det(2*pi*Sig)^(-1/2) * exp(-t(X) %*% Sig^(-1) %*% X / 2);
+		return (y);
+	}
+	n = 100;
+	X = seq(0, 1, length.out = n);
+	Y = X;
+	Z = numeric();
+	for (i in 1:n) {
+		for (j in 1:n) {
+			Z = c(Z, copula(X[i], Y[j]));
+		}
+	}
+
+	Z = matrix(Z, nrow = n, ncol = n);
+	persp(X, Y, Z, xlab = "u", ylab = "v", zlab = "Copula",
+	 main = "Surface plot of bivariate normal copula with parameter 0.7");
+	dev.copy(png, "plots/plot_q1_2.png"); dev.off ();
+}
+
+surfGumbel(1.5);
+surfNormal(0.7);
+\end{lstlisting}
+
+\includegraphics{"plot_q1_1"}
+\pagebreak
+
+\includegraphics{"plot_q1_2"}
+\pagebreak
+
+
+\section{Question B}
+
+\noindent{Code for R}
+
+\begin{lstlisting}[language=R]
+contGumbel <- function(theta, mu, sig, df) {
+	copula <- function(u, v) {
+		y = exp(-((-log(u))^theta + (-log(v))^theta)^(1/theta));
+		return (y);
+	}
+	n = 100;
+	X = seq(1/n, 1 - 1/n, length.out = n);
+	Y = X;
+	Z = numeric();
+	for (i in 1:n) {
+		for (j in 1:n) {
+			Z = c(Z, copula(X[i], Y[j]));
+		}
+	}
+
+	X = qnorm(X, mean = mu, sd = sig);
+	Y = qt(Y, df = df);
+	# print(X); print(Y); print(Z);
+	Z = matrix(Z, nrow = n, ncol = n, byrow = TRUE);
+	persp(X, Y, Z, xlab = "Quantile from N(3,4)", ylab = "Quantile from T(3)", zlab = "Density",
+	 main = "Density of bivariate gumbel copula with parameter 1.4");
+	dev.copy(png, "plots/plot_q2_1.png"); dev.off ();
+	contour(X, Y, Z, main = "Density of bivariate gumbel copula with parameter 1.4");
+	dev.copy(png, "plots/plot_q2_2.png"); dev.off ();
+
+	for (i in 2:n) {
+		for (j in 2:n) {
+			Z[i, j] = Z[i-1, j] + Z[i, j-1] - Z[i-1, j-1];
+		}
+	}
+	persp(X, Y, Z, xlab = "Quantile from N(3,4)", ylab = "Quantile from T(3)", zlab = "CDF",
+	 main = "CDF of bivariate gumbel copula with parameter 1.4");
+	dev.copy(png, "plots/plot_q2_3.png"); dev.off ();
+	contour(X, Y, Z, main = "CDF of bivariate gumbel copula with parameter 1.4");
+	dev.copy(png, "plots/plot_q2_4.png"); dev.off ();
+}
+
+
+theta = 1.4;
+mu = 3;
+sig = 2;
+df = 3;
+contGumbel(theta, mu, sig, df);
+\end{lstlisting}
+
+\includegraphics{"plot_q2_1"}
+\pagebreak
+
+\includegraphics{"plot_q2_2"}
+\pagebreak
+
+\includegraphics{"plot_q2_3"}
+\pagebreak
+
+\includegraphics{"plot_q2_4"}
+\pagebreak
+
+\end{document}
