@@ -20,6 +20,7 @@
 \noindent{Code for R}
 
 \begin{lstlisting}[language=R]
+library(mvtnorm)
 surfGumbel <- function(theta) {
 	copula <- function(u, v) {
 		y = exp(-((-log(u))^theta + (-log(v))^theta)^(1/theta));
@@ -36,18 +37,29 @@ surfGumbel <- function(theta) {
 	}
 
 	Z = matrix(Z, nrow = n, ncol = n);
-	persp(X, Y, Z, xlab = "u", ylab = "v", zlab = "Copula",
+	persp(X, Y, Z, xlab = "u", ylab = "v", zlab = "Copula",  col = "red",
 	 main = "Surface plot of bivariate gumbel copula with parameter 1.5");
 	dev.copy(png, "plots/plot_q1_1.png"); dev.off ();
 }
 
 surfNormal <- function(theta) {
 	copula <- function(u, v) {
-		X = matrix(c(qnorm(u), qnorm(v)), nrow=2, ncol=1);
+		x_up = qnorm(u); y_up = qnorm(v);
 		Sig = matrix(c(1, theta, theta, 1), nrow=2, ncol=2);
-		y = det(2*pi*Sig)^(-1/2) * exp(-t(X) %*% Sig^(-1) %*% X / 2);
-		return (y);
+		pmvnorm(lower = c(-Inf, -Inf), upper = c(x_up, y_up), mean = c(0, 0), corr = Sig);
+		# pdf <- function(x, y) {			
+		# 	X = matrix(X, nrow=2, ncol=1);
+		# 	ans = det(2*pi*Sig)^(-1/2) * exp(-t(X) %*% Sig^(-1) %*% X / 2);
+		# 	return (ans)
+		# }
+		# integrate(function(y) {
+		# 	sapply(y, function(y) {
+		# 		integrate(function(x) {
+		# 			sapply(x, function(x) pdf(x, y))}, -10, x_up)$value
+		# 		})
+		# 	}, -10, y_up)
 	}
+
 	n = 100;
 	X = seq(0, 1, length.out = n);
 	Y = X;
@@ -59,7 +71,7 @@ surfNormal <- function(theta) {
 	}
 
 	Z = matrix(Z, nrow = n, ncol = n);
-	persp(X, Y, Z, xlab = "u", ylab = "v", zlab = "Copula",
+	persp(X, Y, Z, xlab = "u", ylab = "v", zlab = "Copula", col = "red",
 	 main = "Surface plot of bivariate normal copula with parameter 0.7");
 	dev.copy(png, "plots/plot_q1_2.png"); dev.off ();
 }
@@ -75,7 +87,7 @@ surfNormal(0.7);
 \pagebreak
 
 
-\section{Question B}
+\section{Question 2}
 
 \noindent{Code for R}
 
@@ -85,18 +97,23 @@ contGumbel <- function(theta, mu, sig, df) {
 		y = exp(-((-log(u))^theta + (-log(v))^theta)^(1/theta));
 		return (y);
 	}
+	pdf_copula <- function(u, v) {
+		y = (dnorm(qnorm(u, mean = mu, sd = sig), mean = mu, sd = sig) * 
+			dt(qt(v, df = df), df = df) *
+			(exp(-((-log(u))^theta + (-log(v))^theta)^(1/theta))*(-log(u))^(theta - 1)*(-log(v))^(theta - 1)*((-log(u))^theta + (-log(v))^theta)^(2/theta - 2))/(u*v) - (theta*exp(-((-log(u))^theta + (-log(v))^theta)^(1/theta))*(-log(u))^(theta - 1)*(-log(v))^(theta - 1)*(1/theta - 1)*((-log(u))^theta + (-log(v))^theta)^(1/theta - 2))/(u*v));
+	}
 	n = 100;
-	X = seq(1/n, 1 - 1/n, length.out = n);
-	Y = X;
+	X_ = seq(1/n, 1 - 1/n, length.out = n);
+	Y_ = X_;
 	Z = numeric();
 	for (i in 1:n) {
 		for (j in 1:n) {
-			Z = c(Z, copula(X[i], Y[j]));
+			Z = c(Z, pdf_copula(X_[i], Y_[j]));
 		}
 	}
 
-	X = qnorm(X, mean = mu, sd = sig);
-	Y = qt(Y, df = df);
+	X = qnorm(X_, mean = mu, sd = sig);
+	Y = qt(Y_, df = df);
 	# print(X); print(Y); print(Z);
 	Z = matrix(Z, nrow = n, ncol = n, byrow = TRUE);
 	persp(X, Y, Z, xlab = "Quantile from N(3,4)", ylab = "Quantile from T(3)", zlab = "Density",
@@ -105,11 +122,13 @@ contGumbel <- function(theta, mu, sig, df) {
 	contour(X, Y, Z, main = "Density of bivariate gumbel copula with parameter 1.4");
 	dev.copy(png, "plots/plot_q2_2.png"); dev.off ();
 
-	for (i in 2:n) {
-		for (j in 2:n) {
-			Z[i, j] = Z[i-1, j] + Z[i, j-1] - Z[i-1, j-1];
+	Z = numeric();
+	for (i in 1:n) {
+		for (j in 1:n) {
+			Z = c(Z, copula(X_[i], Y_[j]));
 		}
 	}
+	Z = matrix(Z, nrow = n, ncol = n, byrow = TRUE);
 	persp(X, Y, Z, xlab = "Quantile from N(3,4)", ylab = "Quantile from T(3)", zlab = "CDF",
 	 main = "CDF of bivariate gumbel copula with parameter 1.4");
 	dev.copy(png, "plots/plot_q2_3.png"); dev.off ();
